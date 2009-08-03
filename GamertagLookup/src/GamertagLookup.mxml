@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:xbl="net.duncanmackenzie.*"
+	xmlns:fxlib="flexlib.controls.*"
+	layout="absolute"
+	creationComplete="init();"
+	backgroundGradientAlphas="[0.3, 1.0]"
+	backgroundGradientColors="[#C8C8C8, #009538]">
+	
+	<mx:Script>
+		<![CDATA[
+			import flexlib.controls.Fire;
+			import mx.controls.HRule;
+			import mx.events.ListEvent;
+			import mx.events.ItemClickEvent;
+			import Models.Xbox.GameInfo;
+			import Models.Xbox.RecentGameInfo;
+			import mx.rpc.events.FaultEvent;
+			import Models.Xbox.GamerInfo;
+			import mx.collections.XMLListCollection;
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.ResultEvent;
+			
+			private function init():void{
+				XBL.addEventListener(ResultEvent.RESULT,returnCall,false,0,true);
+				XBL.addEventListener(FaultEvent.FAULT,returnError,false,0,true);
+				FIStalkText.addEventListener(Event.CHANGE,changeGamerTag,false,0,true);
+				GamesPlayed.addEventListener(ItemClickEvent.ITEM_CLICK,changeRgi,false,0,true);
+				SearchHistory.addEventListener(ItemClickEvent.ITEM_CLICK,changeGt,false,0,true);
+				GamerInfoTitleBox.addEventListener(MouseEvent.CLICK,gotoProfile,false,0,true);
+				
+				Security.allowDomain("*");
+				Security.allowInsecureDomain("*");
+				Security.loadPolicyFile('http://jeff.localroot.org/xbl/crossdomain.xml');
+				
+				XBL.url = 'http://jeff.localroot.org/xbl/?g=chin+ornaments';
+				XBL.send();
+				
+				var b:BlurFilter = new BlurFilter(10,10,3);
+				GamertagBlurred.filters = [b];
+				GamerStatusBlurred.filters = [b];
+				
+				var clouds:Fire = new Fire();
+				clouds.colors = [0xFAFBFA,0xBEDDF2];
+				clouds.wFactor = 7;
+				clouds.hFactor = 4;
+				clouds.detail = 2;
+				clouds.xSpeed = -1;
+				clouds.ySpeed = 0;
+				clouds.width = 1000;
+				clouds.height = 220;
+				clouds.delay = 0;
+				clouds.x = -150;
+				clouds.y = -125;
+				addChildAt(clouds,0);
+			}
+			
+			[Bindable]
+			private var gamerInfo:GamerInfo = new GamerInfo();
+			[Bindable]
+			private var lookupHistory:ArrayCollection = new ArrayCollection();
+			[Bindable]
+			private var rgi:RecentGameInfo = new RecentGameInfo();
+			
+			private function gotoProfile(e:MouseEvent):void{
+				
+			}
+			
+			private function changeRgi(e:ListEvent):void{
+				rgi = (e.currentTarget.selectedItem as RecentGameInfo);
+			}
+			
+			private function changeGt(e:ListEvent):void{
+				gamerInfo = (e.currentTarget.selectedItem as GamerInfo);
+			}
+			
+			private function returnCall(e:ResultEvent):void{
+				
+				// create a new copy for the lookup history
+				var gi:GamerInfo = new GamerInfo();
+				
+//				var g:ArrayCollection = new ArrayCollection([e.result.XboxInfo]);
+
+				if(e.result.XboxInfo != undefined 
+				&& e.result.XboxInfo.State != undefined 
+				&& e.result.XboxInfo.State != 'Invalid'){
+					gi.accountStatus			= e.result.XboxInfo.AccountStatus;
+					gi.avatarUrl				= "http://avatar.xboxlive.com/avatar/"+encodeURIComponent(e.result.XboxInfo.Gamertag)+"/avatar-body.png";
+					gi.state					= e.result.XboxInfo.State;
+					gi.gamertag					= e.result.XboxInfo.Gamertag;
+					gi.profileUrl				= e.result.XboxInfo.ProfileUrl;
+					gi.tileUrl					= e.result.XboxInfo.TileUrl;
+					gi.country					= e.result.XboxInfo.Country;
+					gi.reputation				= e.result.XboxInfo.Reputation;
+					gi.bio						= e.result.XboxInfo.Bio;
+					gi.location					= e.result.XboxInfo.Location;
+					gi.reputationImageUrl		= e.result.XboxInfo.ReputationImageUrl;
+					gi.gamerScore				= e.result.XboxInfo.GamerScore;
+					gi.zone						= e.result.XboxInfo.Zone;
+					
+					gi.presenceInfo.valid		= e.result.XboxInfo.PresenceInfo.Valid;
+					gi.presenceInfo.info		= e.result.XboxInfo.PresenceInfo.Info;
+					gi.presenceInfo.info2		= e.result.XboxInfo.PresenceInfo.Info2;
+					gi.presenceInfo.lastSeen	= e.result.XboxInfo.PresenceInfo.LastSeen;
+					gi.presenceInfo.online		= e.result.XboxInfo.PresenceInfo.Online;
+					gi.presenceInfo.statusText	= e.result.XboxInfo.PresenceInfo.StatusText;
+					gi.presenceInfo.title		= e.result.XboxInfo.PresenceInfo.Title;
+					
+					if(e.result.XboxInfo.RecentGames != undefined 
+					&& e.result.XboxInfo.RecentGames.XboxUserGameInfo != undefined){
+						for each(var RG:Object in e.result.XboxInfo.RecentGames.XboxUserGameInfo){
+							var RGI:RecentGameInfo 			= new RecentGameInfo();
+							RGI.gameInfo.gameId				= RG.Game.GameId;
+							RGI.gameInfo.name				= RG.Game.Name;
+							RGI.gameInfo.totalAchievements	= RG.Game.TotalAchievements;
+							RGI.gameInfo.totalGamerScore	= RG.Game.TotalGamerScore;
+							RGI.gameInfo.image32Url			= RG.Game.Image32Url;
+							RGI.gameInfo.image64Url			= RG.Game.Image64Url;
+							RGI.lastPlayed					= RG.LastPlayed;
+							RGI.achievements				= RG.Achievements;
+							RGI.gamerScore					= RG.GamerScore;
+							RGI.detailsUrl					= RG.DetailsUrl;
+							gi.recentGames.addGameInfo(RGI);
+						}
+					}
+					
+					gamerInfo = gi; // save the new copy as the bound copy
+					
+					lookupHistory.addItemAt( gi, 0 );
+				}
+				if(gamerInfo.recentGames.length > 0){
+					rgi = gamerInfo.recentGames.getGameInfoAt(0);
+				}
+			}
+			
+			private function returnError(e:FaultEvent):void{
+				trace(e.message);
+			}
+			
+			private function changeGamerTag(e:Event):void{
+				XBL.url = 'http://jeff.localroot.org/xbl/?g='+encodeURIComponent(e.target.text);
+				XBL.send();
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:HTTPService id="XBL"/>
+	
+	<mx:DateFormatter formatString="MM/DD/YYYY @ L:NNA" id="bdf"/>
+	
+	<mx:Canvas id="GamerInfoTitleBox" height="84" right="228" left="168" top="0" minHeight="84" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+		<mx:Image source="{gamerInfo.tileUrl}" height="70" width="70" right="0" top="10"/>
+		<mx:Text id="GamertagBlurred" text="{gamerInfo.gamertag}" y="10" color="#000000" fontWeight="bold" fontFamily="Arial" fontSize="36" selectable="false" left="10" width="755"/>
+		<mx:Text id="Gamertag" text="{gamerInfo.gamertag}" y="10" color="#FFFFFF" fontWeight="bold" fontFamily="Arial" fontSize="36" left="10" width="755"/>
+		<mx:Text id="GamerStatusBlurred" text="{gamerInfo.bio}" color="#000000" x="12" y="58" width="755" fontWeight="bold" fontSize="10"/>
+		<mx:Text id="GamerStatus" text="{gamerInfo.bio}" color="#FFFFFF" x="12" y="58" width="755" fontWeight="bold" fontSize="10"/>
+	</mx:Canvas>
+	
+	<mx:Image height="300" width="150" id="AvatarUrl" source="{gamerInfo.avatarUrl}" left="10" top="10"/>
+	<mx:VBox top="318" left="0" paddingLeft="10" paddingRight="10" paddingBottom="10" paddingTop="10" width="170" bottom="0">
+		<mx:Text id="GamerLocation" text="Location: {gamerInfo.location}" selectable="false"  color="#FFFFFF" fontSize="10" width="100%"/>
+		<mx:Text id="GamerCountry" text="Country: {gamerInfo.country}" selectable="false"  color="#FFFFFF" fontSize="10" width="100%"/>
+		<mx:Text id="GamerZone" text="Zone: {gamerInfo.zone}" selectable="false"  color="#FFFFFF" fontSize="10" width="100%"/>
+		<mx:Text id="GamerState" text="State: {gamerInfo.state}" selectable="false"  color="#FFFFFF" fontSize="10" width="100%"/>
+		<mx:Text id="GamerAccountStatus" text="AccountStatus: {gamerInfo.accountStatus}" selectable="false"  color="#FFFFFF" fontSize="10" width="100%"/>
+		<mx:Text id="GamerRep" text="Reputation: {gamerInfo.reputation}" color="#FFFFFF" fontSize="10" width="100%"/>
+		<mx:Text id="GamerScore" text="Gamerpoints: {gamerInfo.gamerScore}" color="#FFFFFF" fontSize="10" selectable="false" textAlign="left"  width="100%"/>
+	</mx:VBox>
+	
+	<mx:Panel left="168" top="92" bottom="10" right="228" layout="absolute" title="Recent Games" color="#FFFFFF">
+		<mx:HBox left="5" right="5" bottom="5" top="5" width="100%" color="#000000" >
+		
+			<mx:Canvas label="Recent Games" width="100%" height="100%">
+				<mx:TileList id="GamesPlayed" dataProvider="{gamerInfo.recentGames}" offscreenExtraRowsOrColumns="10" left="5" right="5" top="5" bottom="5">
+					<mx:itemRenderer>
+						<mx:Component>
+							<mx:HBox width="250" height="75" horizontalScrollPolicy="off" verticalScrollPolicy="off" paddingLeft="10">
+								<mx:DateFormatter formatString="MM/DD/YYYY" id="df"/>
+   								<mx:Image source="{data.gameInfo.image64Url}" width="50" height="50"/>
+								<mx:VBox width="190" textAlign="left">
+									<mx:Text text="{data.gameInfo.name}" width="100%" fontSize="14"/>
+									<mx:Text id="formattedDate" text="Last Played {df.format(data.lastPlayed)}" width="100%"/>
+								</mx:VBox>
+							</mx:HBox>
+						</mx:Component>
+					</mx:itemRenderer>
+				</mx:TileList>
+			</mx:Canvas>
+			
+			<mx:VBox height="100%" minWidth="250" paddingTop="5" paddingBottom="5" paddingLeft="5" paddingRight="5">
+				<mx:HBox width="100%">
+					<mx:Image source="{rgi.gameInfo.image64Url}" width="100" height="100"/>
+					<mx:VBox label="Game Info" width="100%">
+						<mx:Text text="{rgi.gameInfo.name}" width="100%" fontSize="18"/>
+					</mx:VBox>
+				</mx:HBox>
+				<mx:Text text="You've earned:" width="100%"/>
+				<mx:Text text="{rgi.achievements} of {rgi.gameInfo.totalAchievements} achievements ({Math.round(rgi.achievements/rgi.gameInfo.totalAchievements*100)}%)" width="100%"/>
+				<mx:Text text="{rgi.gamerScore} of {rgi.gameInfo.totalGamerScore} gamer points ({Math.round(rgi.gamerScore/rgi.gameInfo.totalGamerScore*100)}%)" width="100%"/>
+				<mx:Text text="Last Played {bdf.format(rgi.lastPlayed)}" width="100%"/>
+			</mx:VBox>
+			
+		</mx:HBox>
+	</mx:Panel>
+	
+	<mx:Panel right="10" bottom="10" top="92" width="210" layout="absolute" paddingBottom="0" paddingLeft="0" paddingRight="0" paddingTop="0" title="Search History" color="#FFFFFF">
+		<mx:List id="SearchHistory" paddingBottom="0" paddingLeft="0" paddingRight="0" paddingTop="0" dataProvider="{lookupHistory}" left="5" right="5" bottom="5" top="5" borderStyle="none" color="#000000">
+			<mx:itemRenderer>
+				<mx:Component>
+					<mx:HBox width="190" height="60" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+						<mx:Image source="{data.tileUrl}" width="50" height="50"/>
+						<mx:VBox width="130" textAlign="left">
+							<mx:Text text="{data.gamertag}" width="100%"/>
+							<mx:Text text="GamerScore {data.gamerScore}" width="100%"/>
+						</mx:VBox>
+					</mx:HBox>
+				</mx:Component>
+			</mx:itemRenderer>
+		</mx:List>
+	</mx:Panel>
+	
+	<mx:Panel y="10" width="210" layout="absolute" title="Search Gamertags" height="74" right="10" color="#FFFFFF">
+		<mx:TextInput id="FIStalkText" right="5" left="5" top="5" color="#000000"/>
+	</mx:Panel>
+	
+</mx:Application>

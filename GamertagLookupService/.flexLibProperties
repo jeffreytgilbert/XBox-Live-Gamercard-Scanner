@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flexLibProperties version="1">
+<includeClasses>
+<classEntry path="Models.Xbox.GameInfo"/>
+<classEntry path="Models.Xbox.GamerInfo"/>
+<classEntry path="Models.Xbox.PresenceInfo"/>
+<classEntry path="Models.Xbox.RecentGameInfo"/>
+<classEntry path="Models.Xbox.RecentGamesList"/>
+</includeClasses>
+<includeResources/>
+<namespaceManifests/>
+</flexLibProperties>
